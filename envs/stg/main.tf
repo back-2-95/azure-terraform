@@ -8,3 +8,20 @@ terraform {
 provider "azurerm" {
   features {}
 }
+
+# Networking and Resource Group
+module "network" {
+  source        = "../../modules/network"
+  project       = "myapp"
+  env           = "stg"
+  location      = "northeurope"
+  address_space = ["10.20.0.0/16"]
+  subnets = {
+    aks = "10.20.1.0/24"
+    db  = "10.20.2.0/24"
+    pe  = "10.20.3.0/24"
+  }
+  tags = {
+    owner = "CHANGE_ME"
+  }
+}

@@ -1,6 +1,6 @@
 # myapp Azure Terraform scaffolding (envs + remote state)
 
-This repository currently contains minimal, production-ready scaffolding to support multiple environments and remote Terraform state. It does not yet provision Azure resources; refer to TODO.md for the full implementation plan.
+This repository currently contains multi-environment scaffolding, remote Terraform state, and baseline Azure networking (resource group + VNet + subnets) provisioned via a reusable Terraform module. See TODO.md for the full implementation plan.
 
 Context and decisions
 - Cloud: Azure (AKS, MySQL Flexible Server planned)

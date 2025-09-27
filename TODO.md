@@ -29,12 +29,12 @@ Context for this project (decisions provided):
 - [ ] Add pre-commit hooks (fmt, validate, tflint, tfsec) and GitHub Actions/Azure DevOps pipeline for plan/apply (manual approval for prod).
 
 ## 2. Networking (Azure)
-- [ ] Create Resource Group(s) (network, data, aks, shared if desired).
-- [ ] Create VNet with address space, e.g., 10.0.0.0/16.
-- [ ] Subnets:
-  - [ ] aks-subnet (e.g., 10.0.1.0/24)
-  - [ ] db-subnet (delegated for MySQL Flexible Server)
-  - [ ] pe-subnet for Private Endpoints (if using private access)
+- [x] Create Resource Group(s) (network, data, aks, shared if desired).
+- [x] Create VNet with address space, e.g., 10.0.0.0/16.
+- [x] Subnets:
+  - [x] aks-subnet (e.g., 10.0.1.0/24)
+  - [x] db-subnet (delegated for MySQL Flexible Server)
+  - [x] pe-subnet for Private Endpoints (if using private access)
 - [ ] Network Security Groups (NSGs) and rules; associate to subnets where applicable.
 - [ ] Azure Firewall or basic outbound rules as needed.
 - [ ] Private DNS zones for MySQL and Private Endpoints if using private networking.
