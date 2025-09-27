@@ -18,6 +18,9 @@ What’s included now
       - Terraform core configuration and an S3 backend stub (empty body; configured at init time)
       - AzureRM provider (features {})
     - backend.hcl with placeholders for S3 bucket, key, region, and optional DynamoDB table
+- Reusable modules:
+  - modules/network: creates Resource Group, VNet, and subnets
+  - modules/common: centralizes shared values (project, location, and common tags like owner) used across all envs
 - Updated TODO.md to reflect:
   - Environments decided (dev/stg/prod)
   - Remote state via S3 + DynamoDB (instead of Azure Storage)
@@ -44,6 +47,12 @@ Example below uses dev; stg/prod are identical with their own backend.hcl.
   - region = "<s3-bucket-region>" (example: eu-north-1)
   - dynamodb_table = "<your-dynamodb-table>" (optional but recommended)
 
+Set Azure subscription ID:
+
+```console
+export ARM_SUBSCRIPTION_ID="add-here-the-subscription-id"
+```
+
 2) Initialize in the environment directory
 - cd envs/dev
 - With Terraform: terraform init -backend-config=backend.hcl
@@ -64,6 +73,20 @@ Notes
 - Backends cannot use Terraform variables; that’s why we provide backend.hcl files and pass them at init time.
 - Although we deploy Azure resources, using S3 for state is fully supported and keeps state external to the Azure subscription.
 - Keep backend.hcl values generic and do not commit credentials; authentication to AWS should come from your environment or configured profile.
+
+Managing common variables (owner tag, project, location)
+- Shared values are centralized in modules/common.
+- To set the owner tag for all environments, edit modules/common/main.tf and change the tags map default (owner = "<your-name-or-team>").
+- To override shared values per environment, you can pass variables to the common module in an env’s main.tf, e.g.:
+  module "common" {
+    source  = "../../modules/common"
+    project = "myapp"
+    location = "northeurope"
+    tags = {
+      owner = "team-platform"
+    }
+  }
+- Environments currently consume module.common.project, module.common.location, and module.common.tags when invoking other modules, so changes in modules/common propagate automatically.
 
 Next steps (see TODO.md)
 - Add actual Terraform code for networking, AKS, MySQL Flexible Server, and ingress.
