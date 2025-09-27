@@ -225,3 +225,96 @@ Notes and considerations
 - Purge protection is disabled by default here for easier iteration; enable it in production by passing enable_purge_protection = true in the keyvault module if desired.
 - If you prefer RBAC-based authorization for Key Vault data-plane, switch enable_rbac_authorization to true and grant appropriate roles; this example uses classic access policies for simplicity.
 - For application access later (AKS workloads), consider integrating with CSI Secret Store Driver to mount or sync Key Vault secrets into Kubernetes.
+
+
+## Troubleshooting: Key Vault secret read 403 during first apply
+If you see an error like:
+
+- Error: making Read request on Azure KeyVault Secret mysql-admin-password: Status=403 Forbidden
+
+It typically means Terraform tried to read the secret before the Key Vault access policy fully propagated. We added an explicit dependency so the MySQL module waits for the Key Vault module to finish. If you still hit a 403 on a very first run (rare propagation lag on Azure side):
+
+- Re-run apply; it should succeed once the policy is active.
+- Ensure you are authenticated with the same Azure identity that Terraform uses and that this identity has secret permissions. This repo grants the current principal via an access policy.
+
+
+## AKS cluster and example nginx app
+This repo provisions an Azure Kubernetes Service (AKS) cluster in each environment and provides two ways to deploy a simple myapp (nginx) onto it: via kubectl (plain manifests) or via Helm.
+
+What gets created by Terraform
+- AKS: aks-<project>-<env> using Managed Identity, Azure CNI on the aks subnet, Standard_B2s VM size, 1 node.
+- Kubernetes provider configuration (Terraform) that connects to the created cluster.
+- Note: In stg/prod, example nginx resources may already be managed by Terraform. To avoid double-management, prefer one path (Terraform OR kubectl/Helm) per environment.
+
+Option A: Deploy myapp with kubectl (plain manifests)
+1) Ensure AKS exists (terraform apply) and fetch credentials:
+   - make aks-credentials-dev
+2) Apply manifests:
+   - make kubectl-apply-dev
+3) Verify:
+   - kubectl get deploy,svc -n myapp
+   - kubectl get pods -n myapp
+
+The manifests live under k8s/myapp and create:
+- Namespace: myapp
+- Deployment: nginx (image nginx:stable), replicas=2
+- Service: ClusterIP port 80
+
+Option B: Deploy myapp with Helm (Bitnami nginx chart)
+1) Ensure AKS exists and fetch credentials:
+   - make aks-credentials-dev
+2) Install/upgrade the release using our minimal values:
+   - make helm-install-myapp-dev
+3) Verify:
+   - kubectl get deploy,svc -n myapp
+
+Helm details
+- Chart: bitnami/nginx (repo added automatically by the Makefile)
+- Release name: myapp
+- Namespace: myapp
+- Values: helm/myapp/values.yaml (replicas, service type, resources)
+
+Exposure and ingress
+- The provided Service is ClusterIP. For external access, install an ingress controller (Traefik preferred per TODO.md) and create an Ingress/IngressRoute for myapp.domain.tld.
+- Alternatively, for a quick smoke test without ingress, you can temporarily patch Service to type LoadBalancer (not recommended for production).
+
+Notes
+- VM size and node count are minimal by default and can be adjusted via module inputs.
+- Avoid managing the same Kubernetes objects by both Terraform and kubectl/Helm in the same environment; pick one approach per env.
+
+
+## Traefik ingress (Helm) exposing azure-terraform.ineen.net
+This section explains how to install Traefik via Helm on AKS and expose the myapp (nginx) service at https://azure-terraform.ineen.net using ACME (Let’s Encrypt).
+
+Prereqs
+- AKS is provisioned and you can authenticate: make aks-credentials-dev (or -stg, -prod)
+- You have deployed the example app manifests: make kubectl-apply-dev (this creates Service nginx in namespace myapp)
+
+1) Set your ACME email
+- Edit helm/traefik/values.yaml and change admin@example.com to a valid email you control.
+
+2) Install Traefik via Helm
+- make helm-install-traefik-dev
+- This creates namespace traefik, installs chart traefik/traefik with a Service of type LoadBalancer (ports 80/443).
+
+3) Get the Traefik public IP
+- kubectl get svc -n traefik
+- Note the EXTERNAL-IP of the traefik Service.
+
+4) Create a DNS record
+- Create an A record for azure-terraform.ineen.net pointing to the EXTERNAL-IP from step 3.
+- Wait for DNS to propagate (can be a few minutes). Verify with: dig +short azure-terraform.ineen.net
+
+5) Apply the Ingress
+- make kubectl-apply-dev
+- This applies k8s/myapp/ingress.yaml which routes host azure-terraform.ineen.net to Service nginx:80 via Traefik (ingressClassName: traefik) and requests a TLS certificate (resolver: le).
+
+6) Verify HTTPS
+- Watch Traefik events: kubectl -n traefik logs deploy/traefik -f
+- Once ACME challenge is solved, Test: curl -I https://azure-terraform.ineen.net
+- You should see HTTP/2 200 and a valid Let’s Encrypt certificate.
+
+Notes
+- If you deploy myapp via Helm (make helm-install-myapp-dev), the Service name is myapp-nginx. Update the Ingress backend service name accordingly or create an alternate Ingress for that Service.
+- To uninstall Traefik: make helm-uninstall-traefik-dev
+- For a static public IP, pre-create an Azure Public IP and set service.loadBalancerIP in helm/traefik/values.yaml before installing.

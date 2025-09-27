@@ -1,0 +1,26 @@
+# Minimal values for deploying myapp via Helm using the Bitnami NGINX chart
+# Usage:
+#   make helm-install-myapp-dev
+
+replicaCount: 2
+
+image:
+  # Use default Bitnami nginx image; tag left as chart default for security updates
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  ports:
+    http: 80
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 200m
+    memory: 256Mi
+
+# Pod labels to align with kubectl manifests (optional)
+podLabels:
+  app: nginx
