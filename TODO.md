@@ -41,16 +41,16 @@ Context for this project (decisions provided):
 - [ ] Public Static IP for ingress controller.
 
 ## 3. MySQL 8 Flexible Server / Cluster
-- [ ] Create Azure Database for MySQL Flexible Server (version 8.0), with HA zone-redundant if needed.
-- [ ] Configure compute/storage sizing, auto-grow, backup retention, maintenance window.
+- [x] Create Azure Database for MySQL Flexible Server (version 8.0), with HA zone-redundant if needed.
+- [x] Configure compute/storage sizing, auto-grow, backup retention, maintenance window. (Dev uses smallest SKU: B_Standard_B1ms)
 - [ ] Networking:
-  - [ ] Private access via VNet integration (recommended) OR public with firewall rules.
+  - [ ] Private access via VNet integration (recommended) OR public with firewall rules. (Currently using public access for bootstrap)
   - [ ] Private Endpoint + Private DNS zone link.
-- [ ] Create DB admin credentials via Terraform with sensitive outputs suppressed.
+- [x] Create DB admin credentials via Terraform with sensitive outputs suppressed.
 - [ ] Create an application database (e.g., appdb) and a dedicated DB user with least privilege.
 - [ ] Store app DB credentials in Key Vault or as Kubernetes Secret data provisioned via Terraform.
 - [ ] Optionally set up MySQL Flexible Server High Availability and read replicas for scaling.
-- [ ] Outputs: hostname, port, db name, username, secret references.
+- [x] Outputs: hostname, port, db name, username, secret references.
 
 ## 4. Kubernetes Cluster (AKS)
 - [ ] Provision AKS cluster with system and user node pools.

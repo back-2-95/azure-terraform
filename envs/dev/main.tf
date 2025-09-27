@@ -28,3 +28,14 @@ module "network" {
   }
   tags = module.common.tags
 }
+
+# MySQL Flexible Server (smallest for dev)
+module "mysql" {
+  source              = "../../modules/mysql"
+  project             = module.common.project
+  env                 = "dev"
+  location            = module.common.location
+  resource_group_name = module.network.resource_group_name
+  sku_name            = "B_Standard_B1ms" # smallest burstable
+  storage_gb          = 20
+}

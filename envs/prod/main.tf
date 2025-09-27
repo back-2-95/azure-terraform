@@ -28,3 +28,14 @@ module "network" {
   }
   tags = module.common.tags
 }
+
+# MySQL Flexible Server
+module "mysql" {
+  source              = "../../modules/mysql"
+  project             = module.common.project
+  env                 = "prod"
+  location            = module.common.location
+  resource_group_name = module.network.resource_group_name
+  sku_name            = "GP_Standard_D2s_v3"
+  storage_gb          = 100
+}

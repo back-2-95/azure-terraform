@@ -21,6 +21,7 @@ What’s included now
 - Reusable modules:
   - modules/network: creates Resource Group, VNet, and subnets
   - modules/common: centralizes shared values (project, location, and common tags like owner) used across all envs
+  - modules/mysql: creates Azure Database for MySQL Flexible Server (v8). Dev uses smallest SKU (B_Standard_B1ms); stg/prod default to GP_Standard_D2s_v3.
 - Updated TODO.md to reflect:
   - Environments decided (dev/stg/prod)
   - Remote state via S3 + DynamoDB (instead of Azure Storage)
@@ -147,3 +148,46 @@ Troubleshooting
 - If terraform init cannot connect, ensure the MinIO container is running and port 9000 is free.
 - If you previously initialized the backend against a different remote, run: terraform init -migrate-state -backend-config=backend.local.hcl
 - To reset the local MinIO data, stop the stack and remove the named volume: docker compose -f docker-compose.minio.yml down -v
+
+
+## Networking diagram (Mermaid)
+The current Terraform networking module creates one Resource Group per environment that contains a single Virtual Network with three subnets: aks, db, and pe (for private endpoints). The CIDR blocks differ by environment but follow the same pattern.
+
+- dev: VNet 10.10.0.0/16; subnets 10.10.1.0/24 (aks), 10.10.2.0/24 (db), 10.10.3.0/24 (pe)
+- stg: VNet 10.20.0.0/16; subnets 10.20.1.0/24 (aks), 10.20.2.0/24 (db), 10.20.3.0/24 (pe)
+- prod: VNet 10.30.0.0/16; subnets 10.30.1.0/24 (aks), 10.30.2.0/24 (db), 10.30.3.0/24 (pe)
+
+MermaidJS chart of the networking topology (generic across environments):
+
+```mermaid
+flowchart TB
+  %% Generic networking layout created by modules/network
+  %% Substitute <env> with dev|stg|prod and 10.xx with 10.10/10.20/10.30 accordingly
+  direction TB
+
+  subgraph azure[Azure Subscription (northeurope)]
+    subgraph rg[Resource Group: rg-myapp-<env>-net]
+      vnet["VNet: vnet-myapp-<env>\nAddress space: 10.xx.0.0/16"]
+      subgraph subnets[Subnets]
+        aks["aks-subnet\n10.xx.1.0/24"]
+        db["db-subnet\n10.xx.2.0/24"]
+        pe["pe-subnet\n10.xx.3.0/24"]
+      end
+    end
+  end
+
+  vnet --> aks
+  vnet --> db
+  vnet --> pe
+
+  %% Styling
+  classDef vnet fill:#E8F5E9,stroke:#66BB6A,color:#1B5E20;
+  classDef subnet fill:#E3F2FD,stroke:#90CAF9,color:#0D47A1;
+  class vnet vnet;
+  class aks,db,pe subnet;
+```
+
+If your viewer doesn’t render Mermaid, the diagram shows:
+- Resource Group: rg-myapp-<env>-net
+- VNet: vnet-myapp-<env> with address space 10.xx.0.0/16
+- Subnets: aks-subnet (10.xx.1.0/24), db-subnet (10.xx.2.0/24), pe-subnet (10.xx.3.0/24)

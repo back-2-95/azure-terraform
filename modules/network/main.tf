@@ -3,7 +3,7 @@ locals {
 }
 
 resource "azurerm_resource_group" "this" {
-  name     = "rg-${local.base_name}-net"
+  name     = "rg-${local.base_name}"
   location = var.location
   tags     = merge({
     project = var.project
