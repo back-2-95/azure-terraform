@@ -42,13 +42,14 @@ module "keyvault" {
 }
 
 # MySQL Flexible Server (smallest for dev); reads admin password from Key Vault
-module "mysql" {
-  source              = "../../modules/mysql"
-  project             = module.common.project
-  env                 = "dev"
-  location            = module.common.location
-  resource_group_name = module.network.resource_group_name
-  sku_name            = "B_Standard_B1ms" # smallest burstable
-  storage_gb          = 20
-  key_vault_id        = module.keyvault.key_vault_id
-}
+# module "mysql" {
+#   source              = "../../modules/mysql"
+#   project             = module.common.project
+#   env                 = "dev"
+#   location            = module.common.location
+#   resource_group_name = module.network.resource_group_name
+#   sku_name            = "B_Standard_B1ms" # smallest burstable
+#   storage_gb          = 20
+#   key_vault_id        = module.keyvault.key_vault_id
+#   depends_on          = [module.keyvault]
+# }

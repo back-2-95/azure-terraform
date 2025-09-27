@@ -33,3 +33,6 @@ plan-%:
 
 apply-%:
 	@$(CLI) -chdir=$(ENV_DIR)/$* apply
+
+destroy-%:
+	@$(CLI) -chdir=$(ENV_DIR)/$* destroy

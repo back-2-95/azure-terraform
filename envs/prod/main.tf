@@ -51,4 +51,5 @@ module "mysql" {
   sku_name            = "GP_Standard_D2s_v3"
   storage_gb          = 100
   key_vault_id        = module.keyvault.key_vault_id
+  depends_on          = [module.keyvault]
 }
