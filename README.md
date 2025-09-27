@@ -100,7 +100,7 @@ You can simulate an S3 backend locally using MinIO. This is useful for developme
 What you’ll get
 - A local S3-compatible endpoint at http://localhost:9000
 - A MinIO web console at http://localhost:9001
-- An S3 bucket named tfstate created automatically
+- An S3 bucket named tfstate created automatically (via scripts/minio-create-bucket.sh)
 
 Start MinIO
 1) From the repository root, start the stack:

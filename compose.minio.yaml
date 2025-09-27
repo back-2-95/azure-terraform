@@ -12,26 +12,22 @@ services:
       MINIO_ROOT_PASSWORD: minioadmin123
     volumes:
       - minio-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/ready"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
 
   create-bucket:
     image: minio/mc:latest
     container_name: minio-mc
     depends_on:
-      - minio
-    entrypoint: ["/bin/sh","-c"]
-    command: >
-      "
-      set -euo pipefail;
-      mc alias set local http://minio:9000 minioadmin minioadmin123;
-      # Create bucket if it doesn't exist
-      if ! mc ls local/tfstate >/dev/null 2>&1; then
-        mc mb local/tfstate;
-        mc anonymous set download local/tfstate; # optional, keep private if you want
-      fi;
-      echo 'MinIO bucket tfstate ready.';
-      tail -f /dev/null;
-      "
-    restart: unless-stopped
+      minio:
+        condition: service_healthy
+    volumes:
+      - ./scripts/minio-create-bucket.sh:/usr/local/bin/minio-create-bucket.sh:ro
+    entrypoint: ["/bin/sh","/usr/local/bin/minio-create-bucket.sh"]
+    restart: "no"
 
 volumes:
   minio-data:
