@@ -14,7 +14,7 @@ Context for this project (decisions provided):
 ## 0. Prerequisites and Decisions
 - [ ] Provider/region: Azure, northeurope (decided).
 - [ ] Define naming conventions and tags (project, env, owner, cost-center, compliance scopes).
-- [ ] Decide environments (dev/stage/prod) and workspace strategy.
+- [ ] Environments: dev/stg/prod (decided). Choose workspace or separate states.
 - [ ] Decide network model (hub-spoke or flat VNet) and address ranges.
 - [ ] Domain: already registered. Ensure Azure DNS zone exists and/or delegation is set correctly for domain.tld. Manage A/AAAA for myapp.domain.tld.
 - [ ] Cert strategy: Traefik ACME (Let's Encrypt) (decided).
@@ -22,7 +22,7 @@ Context for this project (decisions provided):
 
 ## 1. Terraform Scaffolding
 - [ ] Create Terraform root module structure: envs/(dev|stage|prod), modules/, main providers.
-- [ ] Configure backend for remote state (Azure Storage + state locking via blob leases).
+- [ ] Configure backend for remote state (AWS S3 + state locking via DynamoDB).
 - [ ] Define providers: azurerm (with features {}), kubernetes, helm (configured post-AKS creation).
 - [ ] Create variables.tf and outputs.tf in root and modules. Establish tfvars per environment.
 - [ ] Establish workspaces or separate state per environment.
