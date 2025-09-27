@@ -48,7 +48,7 @@ Context for this project (decisions provided):
   - [ ] Private Endpoint + Private DNS zone link.
 - [x] Create DB admin credentials via Terraform with sensitive outputs suppressed.
 - [ ] Create an application database (e.g., appdb) and a dedicated DB user with least privilege.
-- [ ] Store app DB credentials in Key Vault or as Kubernetes Secret data provisioned via Terraform.
+- [x] Store app DB credentials in Key Vault or as Kubernetes Secret data provisioned via Terraform. (Implemented via Azure Key Vault; secrets: mysql-admin-username, mysql-admin-password)
 - [ ] Optionally set up MySQL Flexible Server High Availability and read replicas for scaling.
 - [x] Outputs: hostname, port, db name, username, secret references.
 
