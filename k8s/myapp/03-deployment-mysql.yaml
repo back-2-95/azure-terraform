@@ -3,6 +3,8 @@ kind: Deployment
 metadata:
   name: mysql
   namespace: myapp
+  labels:
+    app: mysql
 spec:
   replicas: 1
   selector:
@@ -12,10 +14,12 @@ spec:
     metadata:
       labels:
         app: mysql
+        component: mysql
     spec:
       containers:
         - name: mysql
           image: mysql:8.0
+          imagePullPolicy: IfNotPresent
           args:
             - "--default-authentication-plugin=mysql_native_password"
           env:
