@@ -10,8 +10,8 @@ certificatesResolvers:
       email: marko.korhonen@gmail.com
       #caServer: https://acme-v02.api.letsencrypt.org/directory # Production server
       caServer: https://acme-staging-v02.api.letsencrypt.org/directory # Staging server
-      #dnsChallenge:
-      #  provider: azuredns
+      httpChallenge:
+        entryPoint: web
       storage: /data/acme.json
 
 deployment:
