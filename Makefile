@@ -50,7 +50,6 @@ aks-credentials-%:
 
 # Apply plain Kubernetes manifests (kubectl path)
 kubectl-apply-%: aks-credentials-%
-	@kubectl apply -f k8s/myapp/namespace.yaml
 	@kubectl apply -f k8s/myapp/
 
 shell-%:

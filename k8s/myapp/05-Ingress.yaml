@@ -9,6 +9,7 @@ metadata:
     traefik.ingress.kubernetes.io/router.tls: "true"
     traefik.ingress.kubernetes.io/router.tls.certresolver: letsencrypt-prod
     traefik.ingress.kubernetes.io/router.tls.domains.0.main: azure-terraform.ineen.net
+    # @see k8s/myapp/middleware-sslheader.yaml
     traefik.ingress.kubernetes.io/router.middlewares: myapp-sslheader@kubernetescrd
 spec:
   ingressClassName: traefik

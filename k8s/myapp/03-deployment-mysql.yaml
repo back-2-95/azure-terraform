@@ -24,8 +24,6 @@ spec:
                 secretKeyRef:
                   name: mysql-secret
                   key: db-root-password
-            - name: Barfur
-              value: "foobar"
             - name: MYSQL_DATABASE
               value: "wordpress"
             - name: MYSQL_USER
@@ -44,17 +42,3 @@ spec:
         - name: mysql-storage
           persistentVolumeClaim:
             claimName: mysql-pvc
-
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: mysql-service
-  namespace: myapp
-spec:
-  selector:
-    app: mysql
-  ports:
-    - port: 3306
-      targetPort: 3306
-  type: ClusterIP
