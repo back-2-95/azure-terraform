@@ -1,133 +1,122 @@
-# Infrastructure TODO List
+# Infrastructure TODO List (Refactored)
 
-This checklist outlines the tasks to provision an environment using Terraform that includes networking, a MySQL 8 database (Flexible Server/cluster), a Kubernetes cluster, and an example nginx-based app exposed via 80/443 at myapp.domain.tld. Bonus: Traefik as ingress.
+This checklist tracks the implementation of an Azure environment via Terraform that includes networking, a MySQL 8 Flexible Server, an AKS cluster, and an example app exposed at https://azure-terraform.ineen.net using Traefik and Let's Encrypt.
 
-Note: "Flexible Server" terminology aligns with Azure Database for MySQL Flexible Server; the plan below assumes Azure (AKS for Kubernetes). Adapt names if using another cloud.
-
-Context for this project (decisions provided):
-- Provider: Azure
-- Region: northeurope
-- Project: myapp
-- Domain: already registered; app FQDN = myapp.domain.tld
-- TLS strategy: Traefik with ACME (Let's Encrypt)
+Notes:
+- Cloud: Azure (AKS for Kubernetes)
+- Region: `northeurope`
+- Project: `myapp`
+- Domain/FQDN: azure-terraform.ineen.net
+- TLS/Ingress: Traefik with ACME (Let’s Encrypt). Current values use DNS-01 via Azure DNS and ACME staging.
+- Remote state: S3 backend (with optional DynamoDB locking). Local development supported via MinIO.
 
 ## 0. Prerequisites and Decisions
-- [ ] Provider/region: Azure, northeurope (decided).
-- [ ] Define naming conventions and tags (project, env, owner, cost-center, compliance scopes).
-- [ ] Environments: dev/stg/prod (decided). Choose workspace or separate states.
-- [ ] Decide network model (hub-spoke or flat VNet) and address ranges.
-- [ ] Domain: already registered. Ensure Azure DNS zone exists and/or delegation is set correctly for domain.tld. Manage A/AAAA for myapp.domain.tld.
-- [ ] Cert strategy: Traefik ACME (Let's Encrypt) (decided).
-- [ ] Access control approach (Azure RBAC, Kubernetes RBAC) and secret store (Kubernetes Secret, Azure Key Vault).
+- [x] Provider/region decided: Azure, northeurope.
+- [x] Naming conventions and baseline tags: project/env plus owner via modules/common.
+- [x] Environments: dev, stg, prod. Separate state per environment (env folders + backend configs).
+- [x] Network model: flat VNet per environment with aks/db/pe subnets and defined CIDRs.
+- [x] Domain: registered; FQDN = azure-terraform.ineen.net. Use Azure DNS zone for records.
+- [x] Cert strategy: Traefik ACME. ACME staging server configured in Helm values; switch to prod when ready.
+- [ ] Access control approach (Azure RBAC, Kubernetes RBAC hardening) and secret store policy (Key Vault/K8s secrets).
 
 ## 1. Terraform Scaffolding
-- [ ] Create Terraform root module structure: envs/(dev|stage|prod), modules/, main providers.
-- [ ] Configure backend for remote state (AWS S3 + state locking via DynamoDB).
-- [ ] Define providers: azurerm (with features {}), kubernetes, helm (configured post-AKS creation).
-- [ ] Create variables.tf and outputs.tf in root and modules. Establish tfvars per environment.
-- [ ] Establish workspaces or separate state per environment.
-- [ ] Add pre-commit hooks (fmt, validate, tflint, tfsec) and GitHub Actions/Azure DevOps pipeline for plan/apply (manual approval for prod).
+- [x] Root structure: envs/(dev|stg|prod), modules/, providers in place.
+- [x] Backend for remote state: backend "s3" with per-env backend.hcl; local MinIO backend supported via compose.minio.yaml and README.
+- [x] Providers defined: azurerm (features {}), kubernetes configured from AKS outputs. Helm to be used during Traefik install.
+- [ ] variables.tf/outputs.tf at root and standardized tfvars per environment.
+- [x] Separate state per environment (no shared workspaces).
+- [ ] Pre-commit hooks (fmt, validate, tflint, tfsec) and CI/CD pipeline for plan/apply (manual approval for prod).
 
 ## 2. Networking (Azure)
-- [x] Create Resource Group(s) (network, data, aks, shared if desired).
-- [x] Create VNet with address space, e.g., 10.0.0.0/16.
+- [x] Resource Group per environment (via modules/network).
+- [x] Virtual Network with address space.
 - [x] Subnets:
-  - [x] aks-subnet (e.g., 10.0.1.0/24)
-  - [x] db-subnet (delegated for MySQL Flexible Server)
-  - [x] pe-subnet for Private Endpoints (if using private access)
-- [ ] Network Security Groups (NSGs) and rules; associate to subnets where applicable.
-- [ ] Azure Firewall or basic outbound rules as needed.
-- [ ] Private DNS zones for MySQL and Private Endpoints if using private networking.
-- [ ] Public Static IP for ingress controller.
+  - [x] aks-subnet
+  - [x] db-subnet
+  - [x] pe-subnet (for Private Endpoints)
+- [ ] Network Security Groups (NSGs) and rules; associate where applicable.
+- [ ] Azure Firewall or egress restrictions as needed.
+- [ ] Private DNS zones for MySQL/PE if using private networking.
+- [ ] Public Static IP for ingress controller (and annotation/assignment on Service).
 
-## 3. MySQL 8 Flexible Server / Cluster
-- [x] Create Azure Database for MySQL Flexible Server (version 8.0), with HA zone-redundant if needed.
-- [x] Configure compute/storage sizing, auto-grow, backup retention, maintenance window. (Dev uses smallest SKU: B_Standard_B1ms)
+## 3. MySQL 8 Flexible Server
+- [x] Flexible Server module present and enabled in stg/prod (dev pending). Version 8.0.x.
+- [x] Compute/storage sizing defined (dev smallest planned, stg/prod GP sizes).
 - [ ] Networking:
-  - [ ] Private access via VNet integration (recommended) OR public with firewall rules. (Currently using public access for bootstrap)
+  - [ ] Private access via VNet/PE (recommended) OR controlled public with firewall.
   - [ ] Private Endpoint + Private DNS zone link.
-- [x] Create DB admin credentials via Terraform with sensitive outputs suppressed.
-- [ ] Create an application database (e.g., appdb) and a dedicated DB user with least privilege.
-- [x] Store app DB credentials in Key Vault or as Kubernetes Secret data provisioned via Terraform. (Implemented via Azure Key Vault; secrets: mysql-admin-username, mysql-admin-password)
-- [ ] Optionally set up MySQL Flexible Server High Availability and read replicas for scaling.
-- [x] Outputs: hostname, port, db name, username, secret references.
+- [x] Admin credentials sourced from Key Vault (Key Vault module enabled in stg/prod).
+- [ ] Application database/user with least privilege.
+- [ ] Store app DB connection values for workloads (Key Vault/K8s Secret wiring).
+- [ ] Optional HA/read replicas.
+- [x] Outputs: hostname (FQDN), port, admin username (password is sensitive).
 
 ## 4. Kubernetes Cluster (AKS)
-- [ ] Provision AKS cluster with system and user node pools.
-- [ ] Enable network plugin (Azure CNI), kube-dns, and specify AKS subnet.
-- [ ] Enable AAD integration, RBAC, secrets encryption at rest with CMK if required.
-- [ ] Configure cluster autoscaler and node sizing.
-- [ ] Outputs: kubeconfig, cluster name, resource group.
+- [x] AKS cluster provisioned via module with Azure CNI; system node pool present.
+- [ ] Additional user node pools if needed.
+- [x] RBAC enabled (baseline). AAD integration and CMK encryption not configured yet.
+- [ ] Cluster autoscaler and final node sizing policies.
+- [x] Outputs: kubeconfig connection data available from module.
 
-## 5. Ingress Controller and TLS
-- Option A (Preferred): Traefik
-  - [ ] Install Traefik via Helm into traefik namespace.
-  - [ ] Allocate a static public IP in Azure and set Service of type LoadBalancer to use it (service.annotations loadBalancerIP or values override).
-  - [ ] Configure ACME/Let's Encrypt resolver (HTTP-01) with contact email, storage, and entrypoints web/websecure.
-  - [ ] Create IngressRoute (or standard Ingress if preferred) for myapp.domain.tld pointing to the app Service.
-  - [ ] Verify automatic certificate provisioning via Traefik ACME for myapp.domain.tld.
-  - [ ] Optionally enable dashboard (secured) and middlewares (rate-limit, headers, redirect).
-- Option B (Alternative): NGINX Ingress Controller
-  - [ ] Install via Helm chart into kube-system or ingress-nginx namespace.
-  - [ ] Allocate static public IP from Azure and attach to Service of type LoadBalancer.
-  - [ ] Configure IngressClass and default backend.
-  - [ ] Install cert-manager and configure ClusterIssuer (ACME HTTP-01) if you choose NGINX path.
+## 5. Traefik as Ingress Controller and TLS
+- [x] Install Traefik via Helm into traefik namespace using helm/traefik/values.yaml (values prepared).
+- [x] Allocate a static public IP in Azure and attach to Traefik Service (LoadBalancer).
+- [x] ACME configured in values.yaml using Azure DNS (DNS-01) and staging CA; storage at /data/acme.json.
+- [ ] Create Ingress or IngressRoute for azure-terraform.ineen.net pointing to app Service (YAML provided under k8s/myapp, apply once Traefik is up).
+- [ ] Verify certificate issuance via Traefik ACME and HTTPS routing.
+- [x] Optional: Traefik dashboard enabled in values.yaml (secure accordingly).
 
-## 6. Example App (nginx) and Service
-- [ ] Create a Kubernetes Namespace: myapp.
-- [ ] Create a ConfigMap for nginx default.conf if custom routing is desired.
-- [ ] Create a Deployment using nginx:stable image (or pinned version), replicas >= 2.
-- [ ] Create a Service (ClusterIP) exposing port 80.
-- [ ] Create an Ingress resource for myapp.domain.tld routing to the Service.
-- [ ] Ensure TLS via cert-manager or Traefik ACME with certificate resource.
+## 6. Example App and Service
+- [x] Kubernetes Namespace: myapp (YAML and Terraform examples exist).
+- [x] Deployment: sample app (traefik/whoami) provided in k8s manifests; stg/prod Terraform define nginx deployment with 2 replicas.
+- [x] Service: ClusterIP in manifests; stg/prod Terraform example uses LoadBalancer (can switch to ClusterIP when Traefik is used).
+- [x] Ingress: k8s/myapp/Ingress.yaml targets azure-terraform.ineen.net with Traefik annotations.
+- [ ] Pin container image/chart versions to avoid drift.
 
 ## 7. App-to-DB Connectivity and Secrets
-- [ ] Prepare Kubernetes Secret containing database connection info:
-  - [ ] DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD
-- [ ] Mount as env variables in a sample sidecar or placeholder container (since nginx alone doesn’t use DB). Alternatively, use a minimal app that verifies DB connectivity.
+- [ ] Kubernetes Secret for DB connection info (DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD).
+- [ ] Wire env vars into a test pod or minimal app to verify DB connectivity.
 - [ ] Network controls: allow AKS subnet to reach MySQL (via Private Endpoint or firewall rule).
-- [ ] Test connectivity via a Job/Pod that reads the secret and attempts tcp/mysql handshake.
+- [ ] Connectivity test via Job/Pod performing MySQL handshake.
 
 ## 8. DNS and Certificates
-- [ ] Domain already registered: ensure public DNS zone for domain.tld exists in Azure DNS (or verify delegation from registrar).
-- [ ] Create A/AAAA record for myapp.domain.tld pointing to the Traefik LoadBalancer public static IP.
-- [ ] Verify issuance of TLS cert for myapp.domain.tld via Traefik ACME (HTTP-01).
+- [x] Azure DNS zone present/managed for ineen.net (assumed). Confirm delegation.
+- [ ] Create/verify A/AAAA for azure-terraform.ineen.net pointing to Traefik LB public static IP.
+- [ ] Switch ACME to production CA server and verify cert issuance.
 
 ## 9. Observability, Security, and Ops
 - [ ] Enable Azure Monitor/Container Insights for AKS.
-- [ ] Enable MySQL metrics and alert rules (CPU, connections, storage, replication lag).
-- [ ] Set up logs and retention policies.
-- [ ] Backups and restore testing for MySQL (perform PITR test).
-- [ ] Define Network Policies (deny-all default; allow only necessary egress/ingress).
-- [ ] Secrets management policy (rotation, RBAC restrictions, audit).
+- [ ] MySQL metrics/alerts (CPU, connections, storage, replication lag).
+- [ ] Log retention policies.
+- [ ] Backups and restore testing for MySQL (PITR test).
+- [ ] Network Policies (default deny; allow necessary egress/ingress).
+- [ ] Secrets rotation policy and RBAC hardening.
 - [ ] Cost monitoring and budgets.
 
 ## 10. CI/CD and Automation
-- [ ] Pipeline to run terraform fmt/validate/plan/apply per environment with manual gates.
-- [ ] Pipeline to deploy Helm charts/manifests to AKS.
-- [ ] Store kubeconfig and cloud credentials securely in pipeline secrets.
+- [ ] Pipeline for terraform fmt/validate/plan/apply per environment with manual gates.
+- [ ] Pipeline to deploy Helm charts/manifests.
+- [ ] Store kubeconfig and cloud credentials in pipeline secrets.
 
 ## 11. Validation
 - [ ] terraform validate and tflint clean.
 - [ ] terraform plan shows expected changes; apply in dev.
-- [ ] kubectl get nodes/pods/services/ingress confirm resources are healthy.
-- [ ] Access https://myapp.domain.tld returns nginx welcome page over HTTPS.
-- [ ] Database connectivity test pod/job succeeds with secrets.
+- [ ] kubectl get nodes/pods/services/ingress show healthy resources.
+- [ ] Access https://azure-terraform.ineen.net returns app over HTTPS.
+- [ ] Database connectivity test pod/job succeeds.
 
 ## 12. Documentation
-- [ ] README with architecture diagram and instructions for bootstrap & teardown.
-- [ ] Record decisions, defaults, and how to rotate secrets and renew certs.
+- [x] README with decisions, remote state, networking diagram, and local MinIO guide.
+- [ ] Record operational runbooks (secret rotation, cert renewal, disaster recovery).
 
 ---
 
-Reminders: Things you might be missing
-- [ ] Choose and document whether MySQL is private-only (recommended) and how developers access it (bastion/jumpbox or Data Proxy).
-- [ ] Explicitly pin container image versions and Helm chart versions to avoid breaking changes.
-- [ ] Disaster Recovery: cross-region failover strategy for MySQL and AKS backups (Velero).
-- [ ] Sizing and autoscaling policies (HPA/VPA) for workloads.
-- [ ] Compliance requirements (encryption at rest/in transit, key management, policies).
-- [ ] Runbooks for on-call, incident management, SLOs/SLIs.
-- [ ] Testing strategy: integration tests for DB access, smoke tests for ingress.
-- [ ] Access patterns: jumpbox or VPN for private resources if using private endpoints.
-- [ ] Quotas and service limits in target subscription.
-- [ ] Rotate DB user password and TLS cert automation cadence.
+Reminders / Nice-to-haves
+- [ ] Decide on MySQL private-only access and developer access strategy (bastion/VPN/Data Proxy).
+- [ ] Disaster Recovery: cross-region for MySQL and AKS backups (Velero).
+- [ ] HPA/VPA policies for workloads.
+- [ ] Compliance: encryption at rest/in transit, key management, policies.
+- [ ] On-call runbooks, incident management, SLOs/SLIs.
+- [ ] Integration tests for DB access, ingress smoke tests.
+- [ ] Subscription quotas/service limits review.
+- [ ] Rotate DB user passwords and schedule cert renewals.
