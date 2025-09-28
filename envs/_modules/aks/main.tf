@@ -12,6 +12,12 @@ resource "azurerm_kubernetes_cluster" "this" {
 
   kubernetes_version = var.kubernetes_version
 
+  lifecycle {
+    ignore_changes = [
+      default_node_pool["upgrade_settings"],
+    ]
+  }
+
   default_node_pool {
     name                = "system"
     node_count          = var.node_count
