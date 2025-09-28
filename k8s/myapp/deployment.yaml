@@ -36,15 +36,19 @@ spec:
               value: "wordpress"
           ports:
             - containerPort: 80
-#          readinessProbe:
-#            httpGet:
-#              path: /
-#              port: 80
-#            initialDelaySeconds: 3
-#            periodSeconds: 10
-#          livenessProbe:
-#            httpGet:
-#              path: /
-#              port: 80
-#            initialDelaySeconds: 10
-#            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
