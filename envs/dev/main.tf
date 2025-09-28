@@ -15,12 +15,12 @@ provider "azurerm" {
 
 # Common shared settings
 module "common" {
-  source = "../../modules/common"
+  source = "../_modules/common"
 }
 
 # Networking and Resource Group
 module "network" {
-  source        = "../../modules/network"
+  source        = "../_modules/network"
   project       = module.common.project
   env           = "dev"
   location      = module.common.location
@@ -35,7 +35,7 @@ module "network" {
 
 # Key Vault to store project secrets
 module "keyvault" {
-  source              = "../../modules/keyvault"
+  source              = "../_modules/keyvault"
   project             = module.common.project
   env                 = "dev"
   location            = module.common.location
@@ -58,7 +58,7 @@ module "keyvault" {
 
 # AKS cluster (smallest) using Azure CNI on aks subnet
 module "aks" {
-  source              = "../../modules/aks"
+  source              = "../_modules/aks"
   project             = module.common.project
   env                 = "dev"
   location            = module.common.location
