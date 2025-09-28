@@ -167,13 +167,13 @@ flowchart TB
   %% Substitute <env> with dev|stg|prod and 10.xx with 10.10/10.20/10.30 accordingly
   direction TB
 
-  subgraph azure[Azure Subscription (northeurope)]
-    subgraph rg[Resource Group: rg-myapp-<env>-net]
-      vnet["VNet: vnet-myapp-<env>\nAddress space: 10.xx.0.0/16"]
+  subgraph azure[Azure]
+    subgraph rg[Resource Group: rg-myapp-ENV]
+      vnet["VNet: vnet-myapp-ENV<br>Address space: 10.xx.0.0/16"]
       subgraph subnets[Subnets]
-        aks["aks-subnet\n10.xx.1.0/24"]
-        db["db-subnet\n10.xx.2.0/24"]
-        pe["pe-subnet\n10.xx.3.0/24"]
+        aks["aks-subnet<br>10.xx.1.0/24"]
+        db["db-subnet<br>10.xx.2.0/24"]
+        pe["pe-subnet<br>10.xx.3.0/24"]
       end
     end
   end
