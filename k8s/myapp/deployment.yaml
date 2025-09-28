@@ -16,20 +16,35 @@ spec:
         app: myapp
     spec:
       containers:
-        - name: nginx
-          image: traefik/whoami:latest
+        - name: wordpress
+          image: wordpress:php8.4-apache
           imagePullPolicy: IfNotPresent
+          env:
+            - name: WORDPRESS_CONFIG_EXTRA
+              value: |
+                if (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') {
+                    $_SERVER['HTTPS'] = 'on';
+                }
+                define('FORCE_SSL_ADMIN', true);
+            - name: WORDPRESS_DB_HOST
+              value: "mysql-service:3306"
+            - name: WORDPRESS_DB_NAME
+              value: "wordpress"
+            - name: WORDPRESS_DB_USER
+              value: "wordpress"
+            - name: WORDPRESS_DB_PASSWORD
+              value: "wordpress"
           ports:
             - containerPort: 80
-          readinessProbe:
-            httpGet:
-              path: /
-              port: 80
-            initialDelaySeconds: 3
-            periodSeconds: 10
-          livenessProbe:
-            httpGet:
-              path: /
-              port: 80
-            initialDelaySeconds: 10
-            periodSeconds: 20
+#          readinessProbe:
+#            httpGet:
+#              path: /
+#              port: 80
+#            initialDelaySeconds: 3
+#            periodSeconds: 10
+#          livenessProbe:
+#            httpGet:
+#              path: /
+#              port: 80
+#            initialDelaySeconds: 10
+#            periodSeconds: 20
