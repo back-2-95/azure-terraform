@@ -20,13 +20,21 @@ spec:
             - "--default-authentication-plugin=mysql_native_password"
           env:
             - name: MYSQL_ROOT_PASSWORD
-              value: "wordpress!!"
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: db-root-password
+            - name: Barfur
+              value: "foobar"
             - name: MYSQL_DATABASE
               value: "wordpress"
             - name: MYSQL_USER
               value: "wordpress"
             - name: MYSQL_PASSWORD
-              value: "wordpress"
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: db-user-password
           volumeMounts:
             - name: mysql-storage
               mountPath: /var/lib/mysql

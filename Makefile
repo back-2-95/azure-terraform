@@ -53,6 +53,15 @@ kubectl-apply-%: aks-credentials-%
 	@kubectl apply -f k8s/myapp/namespace.yaml
 	@kubectl apply -f k8s/myapp/
 
+shell-%:
+	$(eval POD := $(shell kubectl get pods -n myapp -l app=myapp -o name | head -n1))
+	kubectl exec -n myapp -it $(POD) -- sh
+
+mysql-shell-%:
+	$(eval POD := $(shell kubectl get pods -n myapp -l app=mysql -o name | head -n1))
+	kubectl exec -n myapp -it $(POD) -- sh
+#	kubectl exec -n myapp -t $(POD) -- printenv
+
 # Install Traefik via Helm into traefik namespace
 helm-install-traefik-%: aks-credentials-%
 	@kubectl get ns traefik >/dev/null 2>&1 || kubectl create ns traefik
