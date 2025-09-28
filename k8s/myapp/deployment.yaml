@@ -14,6 +14,7 @@ spec:
     metadata:
       labels:
         app: myapp
+        component: wordpress
     spec:
       containers:
         - name: wordpress
@@ -27,7 +28,7 @@ spec:
                 }
                 define('FORCE_SSL_ADMIN', true);
             - name: WORDPRESS_DB_HOST
-              value: "mysql-service:3306"
+              value: "mysql-service"
             - name: WORDPRESS_DB_NAME
               value: "wordpress"
             - name: WORDPRESS_DB_USER
@@ -36,19 +37,19 @@ spec:
               value: "wordpress"
           ports:
             - containerPort: 80
-          readinessProbe:
-            httpGet:
-              path: /
-              port: 80
-            initialDelaySeconds: 5
-            periodSeconds: 10
-            timeoutSeconds: 5
-            failureThreshold: 6
-          livenessProbe:
-            httpGet:
-              path: /
-              port: 80
-            initialDelaySeconds: 30
-            periodSeconds: 30
-            timeoutSeconds: 5
-            failureThreshold: 3
+#          readinessProbe:
+#            httpGet:
+#              path: /
+#              port: 80
+#            initialDelaySeconds: 5
+#            periodSeconds: 10
+#            timeoutSeconds: 5
+#            failureThreshold: 6
+#          livenessProbe:
+#            httpGet:
+#              path: /
+#              port: 80
+#            initialDelaySeconds: 30
+#            periodSeconds: 30
+#            timeoutSeconds: 5
+#            failureThreshold: 3

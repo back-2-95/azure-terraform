@@ -5,11 +5,11 @@ persistence:
   name: traefik-certs
 
 certificatesResolvers:
-  letsencrypt:
+  letsencrypt-prod:
     acme:
       email: marko.korhonen@gmail.com
-      #caServer: https://acme-v02.api.letsencrypt.org/directory # Production server
-      caServer: https://acme-staging-v02.api.letsencrypt.org/directory # Staging server
+      caServer: https://acme-v02.api.letsencrypt.org/directory # Production server
+      #caServer: https://acme-staging-v02.api.letsencrypt.org/directory # Staging server
       httpChallenge:
         entryPoint: web
       storage: /data/acme.json
@@ -42,3 +42,7 @@ ports:
         to: websecure
         scheme: https
         permanent: true
+  websecure:
+    tls:
+      enabled: true
+      certResolver: letsencrypt-prod
