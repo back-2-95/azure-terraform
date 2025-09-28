@@ -28,7 +28,7 @@ spec:
                 }
                 define('FORCE_SSL_ADMIN', true);
             - name: WORDPRESS_DB_HOST
-              value: "mysql-service"
+              value: "mysql-service:3306"
             - name: WORDPRESS_DB_NAME
               value: "wordpress"
             - name: WORDPRESS_DB_USER
