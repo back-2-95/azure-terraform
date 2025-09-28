@@ -46,3 +46,9 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "log_analytics_workspace_id" {
+  description = "If set, enables Container Insights (OMS agent) and attaches this Log Analytics Workspace ID"
+  type        = string
+  default     = null
+}

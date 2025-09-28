@@ -19,12 +19,12 @@ resource "azurerm_kubernetes_cluster" "this" {
   }
 
   default_node_pool {
-    name                = "system"
-    node_count          = var.node_count
-    vm_size             = var.vm_size
-    type                = "VirtualMachineScaleSets"
-    only_critical_addons_enabled = false
-    vnet_subnet_id      = var.subnet_id
+    name                          = "system"
+    node_count                    = var.node_count
+    vm_size                       = var.vm_size
+    type                          = "VirtualMachineScaleSets"
+    only_critical_addons_enabled  = false
+    vnet_subnet_id                = var.subnet_id
   }
 
   identity {
@@ -32,9 +32,16 @@ resource "azurerm_kubernetes_cluster" "this" {
   }
 
   network_profile {
-    network_plugin = "azure"
-    load_balancer_sku = "standard"
-    network_policy = "azure"
+    network_plugin     = "azure"
+    load_balancer_sku  = "standard"
+    network_policy     = "azure"
+  }
+
+  dynamic "oms_agent" {
+    for_each = var.log_analytics_workspace_id != null ? [1] : []
+    content {
+      log_analytics_workspace_id = var.log_analytics_workspace_id
+    }
   }
 
   role_based_access_control_enabled = true

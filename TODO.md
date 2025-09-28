@@ -81,11 +81,11 @@ Notes:
 
 ## 8. DNS and Certificates
 - [x] Azure DNS zone present/managed for ineen.net (assumed). Confirm delegation.
-- [ ] Create/verify A/AAAA for azure-terraform.ineen.net pointing to Traefik LB public static IP.
-- [ ] Switch ACME to production CA server and verify cert issuance.
+- [x] Create/verify A/AAAA for azure-terraform.ineen.net pointing to Traefik LB public static IP.
+- [x] Switch ACME to production CA server and verify cert issuance.
 
 ## 9. Observability, Security, and Ops
-- [ ] Enable Azure Monitor/Container Insights for AKS.
+- [x] Enable Azure Monitor/Container Insights for AKS.
 - [ ] MySQL metrics/alerts (CPU, connections, storage, replication lag).
 - [ ] Log retention policies.
 - [ ] Backups and restore testing for MySQL (PITR test).
