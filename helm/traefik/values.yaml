@@ -16,7 +16,7 @@ certificatesResolvers:
 
 deployment:
   hostAliases:
-    - ip: "4.210.41.109"
+    - ip: "48.209.152.120"
       hostnames:
         - "azure-terraform.ineen.net"
   initContainers:
