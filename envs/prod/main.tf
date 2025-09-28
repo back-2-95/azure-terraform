@@ -54,6 +54,16 @@ module "mysql" {
   depends_on          = [module.keyvault]
 }
 
+# Log Analytics workspace for Container Insights
+resource "azurerm_log_analytics_workspace" "aks" {
+  name                = "law-${module.common.project}-prod"
+  location            = module.common.location
+  resource_group_name = module.network.resource_group_name
+  sku                 = "PerGB2018"
+  retention_in_days   = 30
+  tags                = module.common.tags
+}
+
 # AKS cluster (smallest) using Azure CNI on aks subnet
 module "aks" {
   source              = "../_modules/aks"
@@ -65,6 +75,7 @@ module "aks" {
   node_count          = 1
   vm_size             = "Standard_B2s"
   tags                = module.common.tags
+  log_analytics_workspace_id = azurerm_log_analytics_workspace.aks.id
 }
 
 # Kubernetes provider configured from AKS outputs
