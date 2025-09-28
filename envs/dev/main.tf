@@ -33,17 +33,15 @@ module "network" {
   tags = module.common.tags
 }
 
-# Key Vault to store MySQL admin credentials (password generated here)
-# module "keyvault" {
-#   source              = "../../modules/keyvault"
-#   project             = module.common.project
-#   env                 = "dev"
-#   location            = module.common.location
-#   resource_group_name = module.network.resource_group_name
-#   tags                = module.common.tags
-#   # Optionally override username; default is "mysqladmin"
-#   # mysql_admin_username = "mysqladmin"
-# }
+# Key Vault to store project secrets
+module "keyvault" {
+  source              = "../../modules/keyvault"
+  project             = module.common.project
+  env                 = "dev"
+  location            = module.common.location
+  resource_group_name = module.network.resource_group_name
+  tags                = module.common.tags
+}
 
 # MySQL Flexible Server (smallest for dev); reads admin password from Key Vault
 # module "mysql" {

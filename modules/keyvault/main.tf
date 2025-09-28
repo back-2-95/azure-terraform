@@ -49,26 +49,26 @@ resource "azurerm_key_vault_access_policy" "current_principal" {
 }
 
 # Generate a strong MySQL admin password and store it in Key Vault
-resource "random_password" "mysql_admin" {
-  length           = 24
-  special          = true
-}
-
-# Store MySQL admin username
-resource "azurerm_key_vault_secret" "mysql_admin_username" {
-  name         = "mysql-admin-username"
-  value        = var.mysql_admin_username
-  key_vault_id = azurerm_key_vault.this.id
-  depends_on   = [azurerm_key_vault_access_policy.current_principal]
-}
-
-# Store MySQL admin password (sensitive)
-resource "azurerm_key_vault_secret" "mysql_admin_password" {
-  name         = "mysql-admin-password"
-  value        = random_password.mysql_admin.result
-  key_vault_id = azurerm_key_vault.this.id
-  depends_on   = [azurerm_key_vault_access_policy.current_principal]
-}
+# resource "random_password" "mysql_admin" {
+#   length           = 24
+#   special          = true
+# }
+#
+# # Store MySQL admin username
+# resource "azurerm_key_vault_secret" "mysql_admin_username" {
+#   name         = "mysql-admin-username"
+#   value        = var.mysql_admin_username
+#   key_vault_id = azurerm_key_vault.this.id
+#   depends_on   = [azurerm_key_vault_access_policy.current_principal]
+# }
+#
+# # Store MySQL admin password (sensitive)
+# resource "azurerm_key_vault_secret" "mysql_admin_password" {
+#   name         = "mysql-admin-password"
+#   value        = random_password.mysql_admin.result
+#   key_vault_id = azurerm_key_vault.this.id
+#   depends_on   = [azurerm_key_vault_access_policy.current_principal]
+# }
 
 output "key_vault_id" {
   value       = azurerm_key_vault.this.id
@@ -85,13 +85,13 @@ output "key_vault_uri" {
   description = "URI of the Key Vault"
 }
 
-output "mysql_admin_username_secret_id" {
-  value       = azurerm_key_vault_secret.mysql_admin_username.id
-  description = "Resource ID of the MySQL admin username secret"
-}
-
-output "mysql_admin_password_secret_id" {
-  value       = azurerm_key_vault_secret.mysql_admin_password.id
-  description = "Resource ID of the MySQL admin password secret"
-  sensitive   = true
-}
+# output "mysql_admin_username_secret_id" {
+#   value       = azurerm_key_vault_secret.mysql_admin_username.id
+#   description = "Resource ID of the MySQL admin username secret"
+# }
+#
+# output "mysql_admin_password_secret_id" {
+#   value       = azurerm_key_vault_secret.mysql_admin_password.id
+#   description = "Resource ID of the MySQL admin password secret"
+#   sensitive   = true
+# }
