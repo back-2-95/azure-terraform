@@ -12,7 +12,7 @@ CLI ?= terraform
 ENV_DIR := envs
 BACKEND_FILE ?= backend.hcl
 
-.PHONY: help init-% plan-% apply-% destroy-% aks-credentials-% kubectl-apply-% helm-install-myapp-% helm-uninstall-myapp-% helm-install-traefik-% helm-uninstall-traefik-%
+.PHONY: help init-% plan-% apply-% destroy-% aks-credentials-% kubectl-apply-% helm-install-traefik-% helm-uninstall-traefik-% traefik-dashboard-% traefik-dashboard-stop traefik-force-cert-% traefik-dns-check-%
 
 help:
 	@echo "Targets:"
@@ -22,15 +22,15 @@ help:
 	@echo "  make destroy-<env>                 # terraform destroy (interactive)"
 	@echo "  make aks-credentials-<env>         # fetch AKS kubeconfig via az CLI"
 	@echo "  make kubectl-apply-<env>           # kubectl apply k8s/myapp manifests (includes Ingress)"
-	@echo "  make helm-install-myapp-<env>      # install myapp via Helm (bitnami/nginx)"
-	@echo "  make helm-uninstall-myapp-<env>    # uninstall myapp Helm release"
 	@echo "  make helm-install-traefik-<env>    # install Traefik ingress controller via Helm"
 	@echo "  make helm-uninstall-traefik-<env>  # uninstall Traefik"
+	@echo "  make traefik-dashboard-<env>       # port-forward Traefik service to localhost:8080 and open dashboard"
 	@echo ""
 	@echo "Examples:"
 	@echo "  make init-dev"
 	@echo "  make plan-stg"
 	@echo "  make CLI=tofu apply-prod"
+	@echo "  make traefik-dashboard-dev"
 
 init-%:
 	@$(CLI) -chdir=$(ENV_DIR)/$* init -backend-config=$(BACKEND_FILE)
@@ -53,17 +53,6 @@ kubectl-apply-%: aks-credentials-%
 	@kubectl apply -f k8s/myapp/namespace.yaml
 	@kubectl apply -f k8s/myapp/
 
-# Install myapp using Helm (uses bitnami/nginx chart by default)
-helm-install-myapp-%: aks-credentials-%
-	@kubectl get ns myapp >/dev/null 2>&1 || kubectl create ns myapp
-	@helm repo add bitnami https://charts.bitnami.com/bitnami >/dev/null 2>&1 || true
-	@helm repo update >/dev/null
-	@helm upgrade --install myapp bitnami/nginx -n myapp -f helm/myapp/values.yaml
-
-helm-uninstall-myapp-%: aks-credentials-%
-	@helm uninstall myapp -n myapp || true
-
-
 # Install Traefik via Helm into traefik namespace
 helm-install-traefik-%: aks-credentials-%
 	@kubectl get ns traefik >/dev/null 2>&1 || kubectl create ns traefik
@@ -74,3 +63,7 @@ helm-install-traefik-%: aks-credentials-%
 
 helm-uninstall-traefik-%: aks-credentials-%
 	@helm uninstall traefik -n traefik || true
+
+traefik-dashboard-%: aks-credentials-%
+	$(eval PODS := $(shell kubectl get pods --selector "app.kubernetes.io/name=traefik" --output=name -n traefik))
+	kubectl port-forward $(PODS) 8080:8080 -n traefik

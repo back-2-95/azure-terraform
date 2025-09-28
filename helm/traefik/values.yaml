@@ -1,95 +1,44 @@
-# Traefik Helm values tailored for AKS with ACME (HTTP-01) and LoadBalancer service
-
-# Expose Traefik via Azure Load Balancer
-service:
-  enabled: true
-  type: LoadBalancer
-  annotations: {}
-  # loadBalancerIP: ""  # Optional: set a static Azure Public IP here if you pre-provision one
-
-# Create and use an IngressClass named "traefik"
-ingressClass:
-  enabled: true
-  isDefaultClass: false
-  name: traefik
-
-# Enable both Kubernetes ingress providers (defaults are true, but explicit here)
-providers:
-  kubernetesCRD:
-    enabled: true
-  kubernetesIngress:
-    enabled: true
-
-# ACME (Let's Encrypt) HTTP-01 configuration via additional arguments
-# IMPORTANT: change the email below before use
-additionalArguments:
-  - --certificatesresolvers.le.acme.email=marko.korhonen@gmail.com
-  - --certificatesresolvers.le.acme.storage=/data/acme.json
-  - --certificatesresolvers.le.acme.httpchallenge=true
-  - --certificatesresolvers.le.acme.httpchallenge.entrypoint=web
-
-# Persist ACME state (acme.json)
 persistence:
   enabled: true
-  name: traefik-data
-  accessMode: ReadWriteOnce
-  size: 1Gi
-  path: /data
+  size: 128Mi
+  #size: 1Gi
+  name: traefik-certs
 
-# Ensure the container can bind to :80/:443 and write to mounted /data via fsGroup
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: marko.korhonen@gmail.com
+      #caServer: https://acme-v02.api.letsencrypt.org/directory # Production server
+      caServer: https://acme-staging-v02.api.letsencrypt.org/directory # Staging server
+      dnsChallenge:
+        provider: azuredns
+      storage: /data/acme.json
+
 deployment:
-  podSecurityContext:
-    fsGroup: 65532
-    fsGroupChangePolicy: OnRootMismatch
-  containerSecurityContext:
-    capabilities:
-      add:
-        - NET_BIND_SERVICE
-    runAsUser: 65532
-    runAsGroup: 65532
-    runAsNonRoot: true
+  hostAliases:
+    - ip: "4.210.41.109"
+      hostnames:
+        - "azure-terraform.ineen.net"
   initContainers:
-    - name: init-acme-permissions
-      image: busybox:1.36
-      imagePullPolicy: IfNotPresent
-      command: ["sh", "-c"]
-      args:
-        - |
-          touch /data/acme.json && chmod 600 /data/acme.json && chown 65532:65532 /data/acme.json
-      securityContext:
-        runAsUser: 0
-        runAsNonRoot: false
+    - name: volume-permissions
+      image: busybox:latest
+      command: ["sh", "-c", "ls -la /; touch /data/acme.json; chmod -v 600 /data/acme.json"]
       volumeMounts:
-        - name: traefik-data
-          mountPath: /data
+        - mountPath: /data
+          name: traefik-certs
 
-# Expose ports 80/443
-enabled: true
-ports:
-  web:
-    port: 8000
-    exposedPort: 80
-    expose:
-      default: true
-  websecure:
-    port: 8443
-    exposedPort: 443
-    expose:
-      default: true
-  traefik:
-    port: 9000
-    exposedPort: 9000
-    # Do not expose via Service by default; this is for internal readiness/liveness and optional dashboard
-    expose:
-      default: false
+podSecurityContext:
+  fsGroup: 65532
+  fsGroupChangePolicy: "OnRootMismatch"
 
-# Enable Traefik ping endpoint so the probes have a valid target
-ping:
-  enabled: true
-  # default entryPoint is "traefik"; leaving default to match port 9000
-
-
-# Security: dashboard disabled by default
 ingressRoute:
   dashboard:
-    enabled: false
+    enabled: true
+
+ports:
+  web:
+    redirections:
+      entryPoint:
+        to: websecure
+        scheme: https
+        permanent: true

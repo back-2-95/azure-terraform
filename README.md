@@ -95,6 +95,8 @@ Next steps (see TODO.md)
 - Add CI/CD to run fmt/validate/plan and to gate prod applies.
 
 
+
+
 ## How to use backend.local.hcl files (quick guide)
 backend.local.hcl files in each env directory are pre-configured to use the local MinIO S3-compatible service from compose.minio.yaml. Use them when you want to run Terraform without a real AWS S3 bucket.
 
@@ -260,27 +262,6 @@ The manifests live under k8s/myapp and create:
 - Deployment: nginx (image nginx:stable), replicas=2
 - Service: ClusterIP port 80
 
-Option B: Deploy myapp with Helm (Bitnami nginx chart)
-1) Ensure AKS exists and fetch credentials:
-   - make aks-credentials-dev
-2) Install/upgrade the release using our minimal values:
-   - make helm-install-myapp-dev
-3) Verify:
-   - kubectl get deploy,svc -n myapp
-
-Helm details
-- Chart: bitnami/nginx (repo added automatically by the Makefile)
-- Release name: myapp
-- Namespace: myapp
-- Values: helm/myapp/values.yaml (replicas, service type, resources)
-
-Exposure and ingress
-- The provided Service is ClusterIP. For external access, install an ingress controller (Traefik preferred per TODO.md) and create an Ingress/IngressRoute for myapp.domain.tld.
-- Alternatively, for a quick smoke test without ingress, you can temporarily patch Service to type LoadBalancer (not recommended for production).
-
-Notes
-- VM size and node count are minimal by default and can be adjusted via module inputs.
-- Avoid managing the same Kubernetes objects by both Terraform and kubectl/Helm in the same environment; pick one approach per env.
 
 
 ## Traefik ingress (Helm) exposing azure-terraform.ineen.net
@@ -315,6 +296,5 @@ Prereqs
 - You should see HTTP/2 200 and a valid Let’s Encrypt certificate.
 
 Notes
-- If you deploy myapp via Helm (make helm-install-myapp-dev), the Service name is myapp-nginx. Update the Ingress backend service name accordingly or create an alternate Ingress for that Service.
 - To uninstall Traefik: make helm-uninstall-traefik-dev
 - For a static public IP, pre-create an Azure Public IP and set service.loadBalancerIP in helm/traefik/values.yaml before installing.
