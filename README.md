@@ -12,23 +12,24 @@ Context and decisions
 - Terraform state: stored in external AWS S3 bucket with optional DynamoDB table for state locking
 
 What’s included now
-- Environment folders: envs/dev, envs/stg, envs/prod
+- Environment folders: `envs/dev`, `envs/stg`, `envs/prod`
   - Each environment has:
-    - main.tf with: 
+    - `main.tf` with: 
       - Terraform core configuration and an S3 backend stub (empty body; configured at init time)
       - AzureRM provider (features {})
-    - backend.hcl with placeholders for S3 bucket, key, region, and optional DynamoDB table
+    - `backend.hcl` with placeholders for S3 bucket, key, region, and optional DynamoDB table
 - Reusable modules:
-  - modules/network: creates Resource Group, VNet, and subnets
-  - modules/common: centralizes shared values (project, location, and common tags like owner) used across all envs
-  - modules/mysql: creates Azure Database for MySQL Flexible Server (v8). Dev uses smallest SKU (B_Standard_B1ms); stg/prod default to GP_Standard_D2s_v3.
-- Updated TODO.md to reflect:
-  - Environments decided (dev/stg/prod)
-  - Remote state via S3 + DynamoDB (instead of Azure Storage)
+  - `envs/_modules/common`: centralizes shared values (project, location, and common tags like owner) used across all envs
+  - `envs/_modules/network`: creates Resource Group, VNet, and subnets
+  - `envs/_modules/mysql`: creates Azure Database for MySQL Flexible Server (v8). Dev uses smallest SKU (B_Standard_B1ms); stg/prod default to GP_Standard_D2s_v3.
+
+## Requirements
 
 Prerequisites for using the current scaffolding
+
 - Terraform CLI 1.6+ or OpenTofu CLI 1.6+
-- AWS S3 (ir compliant) bucket for storing Terraform state
+- Azure CLI
+- AWS S3 (or compliant) bucket for storing Terraform state (dev uses local MinIO)
 - (Recommended) DynamoDB table for state locking
   - Table name of your choice; primary key: LockID (String)
 - AWS credentials available to the chosen CLI (Terraform/OpenTofu) when initializing (e.g., environment variables, AWS profile)
@@ -38,60 +39,49 @@ How remote state works here
 - Actual backend values are supplied at init time using the environment-specific backend.hcl files.
 - This allows different buckets/keys per environment and avoids hardcoding credentials.
 
-Setup instructions per environment
-Example below uses dev; stg/prod are identical with their own backend.hcl.
-
-1) Edit envs/dev/backend.hcl
-- Set:
-  - bucket = "<your-s3-bucket>"
-  - key    = "myapp/dev/terraform.tfstate" (you can keep this default)
-  - region = "<s3-bucket-region>" (example: eu-north-1)
-  - dynamodb_table = "<your-dynamodb-table>" (optional but recommended)
-
 Set Azure subscription ID:
 
 ```console
 export ARM_SUBSCRIPTION_ID="add-here-the-subscription-id"
 ```
 
-2) Initialize in the environment directory
-- `cd envs/dev`
-- With Terraform: `terraform init -backend-config=backend.hcl`
-- With OpenTofu: `tofu init -backend-config=backend.hcl`
-- With tf wrapper: `tf init -backend-config=backend.hcl`
-
-3) Create a plan
-- With Terraform: `terraform plan`
-- With OpenTofu: `tofu plan`
-- With tf wrapper: `tf plan`
-
-4) Apply (optional)
-- With Terraform: `terraform apply`
-- With OpenTofu: `tofu apply`
-- With tf wrapper: `tf apply`
+1) Initialize in the environment directory
+   - With Terraform: `terraform -chdir=envs/dev init -backend-config=backend.hcl`
+   - With OpenTofu: `tofu -chdir=envs/dev init -backend-config=backend.hcl`
+   - With tf wrapper: `tf -chdir=envs/dev init -backend-config=backend.hcl`
+2) Create a plan
+   - With Terraform: `terraform -chdir=envs/dev plan`
+   - With OpenTofu: `tofu -chdir=envs/dev plan`
+   - With tf wrapper: `tf -chdir=envs/dev plan`
+3) Apply (optional)
+   - With Terraform: `terraform -chdir=envs/dev apply`
+   - With OpenTofu: `tofu -chdir=envs/dev apply`
+   - With tf wrapper: `tf -chdir=envs/dev apply`
 
 Notes
 - Backends cannot use Terraform variables; that’s why we provide backend.hcl files and pass them at init time.
 - Although we deploy Azure resources, using S3 for state is fully supported and keeps state external to the Azure subscription.
-- Keep backend.hcl values generic and do not commit credentials; authentication to AWS should come from your environment or configured profile.
+- Keep `backend.hcl` values generic and do not commit credentials; authentication to AWS should come from your environment or configured profile.
 
 Managing common variables (owner tag, project, location)
 
-- Shared values are centralized in modules/common.
-- To set the owner tag for all environments, edit modules/common/main.tf and change the tags map default (owner = "<your-name-or-team>").
-- To override shared values per environment, you can pass variables to the common module in an env’s main.tf, e.g.:
+- Shared values are centralized in `envs/_modules/common`.
+- To set the owner tag for all environments, edit `envs/_modules/common/main.tf` and change the tags map default (owner = "<your-name-or-team>").
+- To override shared values per environment, you can pass variables to the common module in an env’s `main.tf`, e.g.:
   ```module "common" {
-    source  = "../../modules/common"
+    source  = "../_modules/common"
     project = "myapp"
     location = "northeurope"
     tags = {
       owner = "team-platform"
     }
   }```
-- Environments currently consume module.common.project, module.common.location, and module.common.tags when invoking other modules, so changes in modules/common propagate automatically.
+- Environments currently consume `module.common.project`, `module.common.location`, and `module.common.tags` when invoking other modules, so changes in modules/common propagate automatically.
 
 ## How to use backend.local.hcl files (quick guide)
-backend.local.hcl files in each env directory are pre-configured to use the local MinIO S3-compatible service from compose.minio.yaml. Use them when you want to run Terraform without a real AWS S3 bucket.
+
+backend.local.hcl files in each env directory are pre-configured to use the local MinIO S3-compatible service from
+`compose.minio.yaml`. Use them when you want to run Terraform without a real AWS S3 bucket.
 
 Use with Makefile:
 - Start MinIO: docker compose -f compose.minio.yaml up -d
@@ -115,7 +105,8 @@ Notes:
 
 ## Using a local S3 backend with Docker (MinIO)
 
-You can simulate an S3 backend locally using MinIO. This is useful for development or demos when you don’t want to use a real AWS S3 bucket.
+You can simulate an S3 backend locally using MinIO. This is useful for development or demos when you don’t want to use
+a real AWS S3 bucket.
 
 What you’ll get
 - A local S3-compatible endpoint at http://localhost:9000
@@ -123,9 +114,8 @@ What you’ll get
 - An S3 bucket named `tfstate` created automatically (via `scripts/minio-create-bucket.sh`)
 
 Start MinIO
-1) From the repository root, start the stack:
-   - `docker compose -f compose.minio.yaml up --wait`
-2) Open the console at http://localhost:9001 (user: minioadmin, password: minioadmin123) if you want to browse objects.
+1) From the repository root, start the stack: `docker compose -f compose.minio.yaml up --wait`
+2) Open the console at http://localhost:9001 (user: `minioadmin`, password: `minioadmin123`) if you want to browse objects.
 
 Use the local `backend.hcl` (per environment)
 - We’ve added `backend.local.hcl` in each environment folder configured for MinIO.
@@ -141,7 +131,10 @@ Notes and limitations
 - The example credentials in backend.local.hcl are for the local MinIO container only. Do not reuse them elsewhere.
 
 ## Networking diagram (MermaidJS)
-The current Terraform networking module creates one Resource Group per environment that contains a single Virtual Network with three subnets: aks, db, and pe (for private endpoints). The CIDR blocks differ by environment but follow the same pattern.
+
+The current Terraform networking module creates one Resource Group per environment that contains a single Virtual
+Network with three subnets: aks, db, and pe (for private endpoints). The CIDR blocks differ by environment but follow
+the same pattern.
 
 - `dev`: VNet 10.10.0.0/16; subnets 10.10.1.0/24 (aks), 10.10.2.0/24 (db), 10.10.3.0/24 (pe)
 - `stg`: VNet 10.20.0.0/16; subnets 10.20.1.0/24 (aks), 10.20.2.0/24 (db), 10.20.3.0/24 (pe)
